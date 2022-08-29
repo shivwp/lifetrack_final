@@ -80,10 +80,10 @@ class Bugeted {
   late final int? userId;
   late final int? tagId;
   late final String? date;
-  late final String? budgetedStartTime;
-  late final String? budgetEndTime;
-  late final String? actualStartTime;
-  late final String? actualEndTime;
+  String? budgetedStartTime;
+  String? budgetEndTime;
+  String? actualStartTime;
+  String? actualEndTime;
   late final int? status;
   late final Tag? tag;
   late DateTime? startDateTime;

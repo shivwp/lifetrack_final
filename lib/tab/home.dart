@@ -12,10 +12,8 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:life_track/Contants/appcolors.dart';
 import 'package:life_track/controller/get_feeling_controller.dart';
-import 'package:life_track/repo/accept_friend_request_repository.dart';
 import 'package:life_track/repo/add_filling_reposotory.dart';
 import 'package:life_track/repo/updateActivity.dart';
-import 'package:life_track/repo/updateTagStatus.dart';
 
 import '../Contants/constant.dart';
 import '../Utils.dart';
@@ -35,7 +33,8 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
-  final GetFillingController getFillingController = Get.put(GetFillingController());
+  final GetFillingController getFillingController =
+      Get.put(GetFillingController());
 
   List<ResizingItemModel> lstBudget = [];
   List<ResizingItemModel> lstActual = [];
@@ -189,6 +188,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
 
   double _getCalculatedHeight(DateTime start, DateTime end) {
     int diff = end.difference(start).inMinutes;
+    if (diff < 0) {
+      //diff negative when start night 23:00:00 and end 00:00:00
+      diff = 60;
+    }
     double ratio = totalIntervalHeight / interval;
     double calculatedHeight = diff * ratio;
     return calculatedHeight;
@@ -206,26 +209,25 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         _dailyActivityDataModel = DailyActivityDataModel.fromTag(tagDropped);
       } else {
         List<Bugeted> lstFiltered =
-        _dailyActivityDataModel!.bugeted!.where((model) {
+            _dailyActivityDataModel!.bugeted!.where((model) {
           return ((model.tagId == tagDropped.id) &&
-              (model.id == tagDropped.activityId)) ==
+                  (model.id == tagDropped.activityId)) ==
               true;
         }).toList();
         List<Actual> lstFilteredActual =
-        _dailyActivityDataModel!.actual!.where((model) {
+            _dailyActivityDataModel!.actual!.where((model) {
           return ((model.tagId == tagDropped.id) &&
-              (model.id == tagDropped.activityId)) ==
+                  (model.id == tagDropped.activityId)) ==
               true;
         }).toList();
-        if(lstFiltered.length>0){
+        if (lstFiltered.length > 0) {
           lstFiltered[0].budgetedStartTime = tagDropped.starttime;
           lstFiltered[0].budgetEndTime = tagDropped.endtime;
-        }else{
+        } else {
           _dailyActivityDataModel!.bugeted?.add(Bugeted.fromTag(tagDropped));
         }
-        if(lstFilteredActual.length>0){
-
-        }else {
+        if (lstFilteredActual.length > 0) {
+        } else {
           _dailyActivityDataModel!.actual?.add(Actual.fromTag(tagDropped));
         }
       }
@@ -237,34 +239,37 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
   _callbackTagDeleted(
       {required AddedActivityModel tagDeleted,
       required ListingFor listingFor,
-      required int index }) {
-
+      required int index}) {
     if (listingFor == ListingFor.budget) {
       if (_dailyActivityDataModel != null) {
-        List<Bugeted> lstFiltered = _dailyActivityDataModel!.bugeted!.where((model) {
+        List<Bugeted> lstFiltered =
+            _dailyActivityDataModel!.bugeted!.where((model) {
           return ((model.tagId == tagDeleted.id) &&
-              (model.id == tagDeleted.activityId)) == false;
+                  (model.id == tagDeleted.activityId)) ==
+              false;
         }).toList();
-        List<Actual> lstFilteredActual = _dailyActivityDataModel!.actual!.where((model) {
+        List<Actual> lstFilteredActual =
+            _dailyActivityDataModel!.actual!.where((model) {
           return ((model.tagId == tagDeleted.id) &&
-              (model.id == tagDeleted.activityId)) == false;
+                  (model.id == tagDeleted.activityId)) ==
+              false;
         }).toList();
         setState(() {
           _dailyActivityDataModel!.bugeted = lstFiltered;
           _dailyActivityDataModel!.actual = lstFilteredActual;
         });
-
       }
     }
     if (listingFor == ListingFor.actual) {
       if (_dailyActivityDataModel != null) {
-        List<Actual> lstFiltered = _dailyActivityDataModel!.actual!.where((model) {
+        List<Actual> lstFiltered =
+            _dailyActivityDataModel!.actual!.where((model) {
           return ((model.tagId == tagDeleted.id) &&
-              (model.id == tagDeleted.activityId)) == false;
+                  (model.id == tagDeleted.activityId)) ==
+              false;
         }).toList();
         setState(() {
           _dailyActivityDataModel!.actual = lstFiltered;
-
         });
       }
     }
@@ -328,7 +333,12 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     DateTime parsedTime =
         dateFormat.parse(currentTime.format(context).toString());
     // DateTime roundedTime = roundWithin30Minutes(parsedTime);
-    String yourDate = DateTime.now().year.toString()+'-'+DateTime.now().month.toString()+'-'+DateTime.now().day.toString()+'- 00:00:00.000';
+    String yourDate = DateTime.now().year.toString() +
+        '-' +
+        DateTime.now().month.toString() +
+        '-' +
+        DateTime.now().day.toString() +
+        '- 00:00:00.000';
     DateTime roundedTime = roundWithin30Minutes(parsedTime);
     int indexToScroll = 0;
     lstDateTime.add(roundedTime);
@@ -379,12 +389,25 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
               color: Colors.white,
               icon: Obx(() {
                 return getFillingController.isDataloading.value
-                    ? getFillingController.model.value.data!.reviewMassge=='Very Sad' ? FaIcon(FontAwesomeIcons.faceFrown)
-                    : getFillingController.model.value.data!.reviewMassge=='Sad' ? FaIcon(FontAwesomeIcons.faceFrownOpen)
-                    : getFillingController.model.value.data!.reviewMassge=='Ok' ? Icon(Icons.add_reaction_outlined)
-                    : getFillingController.model.value.data!.reviewMassge=='Happy' ? FaIcon(FontAwesomeIcons.faceSmile)
-                    : getFillingController.model.value.data!.reviewMassge=='Very Happy'  ? FaIcon(FontAwesomeIcons.faceSmileBeam)
-                    :Icon(Icons.add_reaction_outlined)
+                    ? getFillingController.model.value.data!.reviewMassge ==
+                            'Very Sad'
+                        ? FaIcon(FontAwesomeIcons.faceFrown)
+                        : getFillingController.model.value.data!.reviewMassge ==
+                                'Sad'
+                            ? FaIcon(FontAwesomeIcons.faceFrownOpen)
+                            : getFillingController
+                                        .model.value.data!.reviewMassge ==
+                                    'Ok'
+                                ? Icon(Icons.add_reaction_outlined)
+                                : getFillingController
+                                            .model.value.data!.reviewMassge ==
+                                        'Happy'
+                                    ? FaIcon(FontAwesomeIcons.faceSmile)
+                                    : getFillingController.model.value.data!
+                                                .reviewMassge ==
+                                            'Very Happy'
+                                        ? FaIcon(FontAwesomeIcons.faceSmileBeam)
+                                        : Icon(Icons.add_reaction_outlined)
                     : Icon(Icons.add_reaction_outlined);
               }),
               onPressed: () {
@@ -417,7 +440,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                 SizedBox(
                   height: 35,
                   width: deviceWidth,
-                  child:ListView.builder(
+                  child: ListView.builder(
                     // shrinkWrap: true,
                     scrollDirection: Axis.horizontal,
                     itemCount: lstActivity.length,
@@ -426,10 +449,12 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                         data: lstActivity[index],
                         dragAnchorStrategy: pointerDragAnchorStrategy,
                         child: InkWell(
-                          onTap: (){
+                          onTap: () {
                             final tagController = TextEditingController();
-                            GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-                            tagController.text = lstActivity[index].activity ?? '';
+                            GlobalKey<FormState> _formKey =
+                                GlobalKey<FormState>();
+                            tagController.text =
+                                lstActivity[index].activity ?? '';
                             showDialog(
                                 context: context,
                                 builder: (BuildContext context) {
@@ -444,58 +469,102 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                                             children: <Widget>[
                                               Container(
                                                 height: 60,
-                                                width: MediaQuery.of(context).size.width,
+                                                width: MediaQuery.of(context)
+                                                    .size
+                                                    .width,
                                                 decoration: BoxDecoration(
-                                                    color:Colors.white.withOpacity(0.2),
+                                                    color: Colors.white
+                                                        .withOpacity(0.2),
                                                     border: Border(
-                                                        bottom: BorderSide(color: Colors.grey.withOpacity(0.3))
-                                                    )
-                                                ),
-                                                child: Center(child: Text("Enter Tag", style:TextStyle(color: Colors.black54, fontWeight: FontWeight.w700, fontSize: 20, fontStyle: FontStyle.italic, fontFamily: "Helvetica"))),
+                                                        bottom: BorderSide(
+                                                            color: Colors.grey
+                                                                .withOpacity(
+                                                                    0.3)))),
+                                                child: Center(
+                                                    child: Text("Enter Tag",
+                                                        style: TextStyle(
+                                                            color:
+                                                                Colors.black54,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            fontSize: 20,
+                                                            fontStyle: FontStyle
+                                                                .italic,
+                                                            fontFamily:
+                                                                "Helvetica"))),
                                               ),
                                               Padding(
                                                 padding: EdgeInsets.all(16.0),
                                                 child: Container(
                                                     height: 50,
                                                     decoration: BoxDecoration(
-                                                        border: Border.all(color: Colors.grey.withOpacity(0.2) )
-                                                    ),
+                                                        border: Border.all(
+                                                            color: Colors.grey
+                                                                .withOpacity(
+                                                                    0.2))),
                                                     child: Row(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
-
                                                         Expanded(
                                                           flex: 4,
                                                           child: TextFormField(
-                                                            controller: tagController,
+                                                            controller:
+                                                                tagController,
                                                             decoration: InputDecoration(
-                                                                hintText: "Enter Tag",
-                                                                contentPadding: EdgeInsets.only(left:20),
-                                                                border: InputBorder.none,
-                                                                focusedBorder: InputBorder.none,
-                                                                errorBorder: InputBorder.none,
-                                                                hintStyle: TextStyle(color:Colors.black26, fontSize: 18, fontWeight: FontWeight.w500 )
-                                                            ),
-
+                                                                hintText:
+                                                                    "Enter Tag",
+                                                                contentPadding:
+                                                                    EdgeInsets.only(
+                                                                        left:
+                                                                            20),
+                                                                border:
+                                                                    InputBorder
+                                                                        .none,
+                                                                focusedBorder:
+                                                                    InputBorder
+                                                                        .none,
+                                                                errorBorder:
+                                                                    InputBorder
+                                                                        .none,
+                                                                hintStyle: TextStyle(
+                                                                    color: Colors
+                                                                        .black26,
+                                                                    fontSize:
+                                                                        18,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w500)),
                                                           ),
                                                         )
                                                       ],
-                                                    )
-                                                ),
+                                                    )),
                                               ),
                                               Padding(
-                                                padding: const EdgeInsets.all(20.0),
+                                                padding:
+                                                    const EdgeInsets.all(20.0),
                                                 child: GestureDetector(
                                                   onTap: () {
-                                                    if (_formKey.currentState!.validate()) {
+                                                    if (_formKey.currentState!
+                                                        .validate()) {
                                                       EasyLoading.show();
-                                                      updateActivity(lstActivity[index].id.toString(), tagController.text).then((value) {
-                                                        showToast(value.message);
+                                                      updateActivity(
+                                                              lstActivity[index]
+                                                                  .id
+                                                                  .toString(),
+                                                              tagController
+                                                                  .text)
+                                                          .then((value) {
+                                                        showToast(
+                                                            value.message);
                                                         EasyLoading.dismiss();
-                                                        if (value.status){
-                                                          setState((){
-                                                            lstActivity[index].activity = tagController.text;
-
+                                                        if (value.status) {
+                                                          setState(() {
+                                                            lstActivity[index]
+                                                                    .activity =
+                                                                tagController
+                                                                    .text;
                                                           });
                                                         }
                                                         return null;
@@ -504,22 +573,40 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                                                     }
                                                   },
                                                   child: Container(
-                                                    width:MediaQuery.of(context).size.width,
+                                                    width:
+                                                        MediaQuery.of(context)
+                                                            .size
+                                                            .width,
                                                     height: 55,
                                                     decoration: BoxDecoration(
-                                                        color: AppColors.PRIMARY_COLOR,
-                                                        borderRadius: const BorderRadius.all(
+                                                        color: AppColors
+                                                            .PRIMARY_COLOR,
+                                                        borderRadius:
+                                                            const BorderRadius
+                                                                .all(
                                                           Radius.circular(25.0),
                                                         ),
                                                         boxShadow: [
                                                           BoxShadow(
-                                                            color: Colors.black.withOpacity(0.2),
+                                                            color: Colors.black
+                                                                .withOpacity(
+                                                                    0.2),
                                                             spreadRadius: 4,
                                                             blurRadius: 10,
-                                                            offset: const Offset(0, 3),
+                                                            offset:
+                                                                const Offset(
+                                                                    0, 3),
                                                           )
                                                         ]),
-                                                    child: Center(child: Text("Submit", style: TextStyle(color:Colors.white70, fontSize: 20, fontWeight: FontWeight.w800),)),
+                                                    child: Center(
+                                                        child: Text(
+                                                      "Submit",
+                                                      style: TextStyle(
+                                                          color: Colors.white70,
+                                                          fontSize: 20,
+                                                          fontWeight:
+                                                              FontWeight.w800),
+                                                    )),
                                                   ),
                                                 ),
                                               )
@@ -533,8 +620,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                           },
                           child: Container(
                             //width: 100,
-                            padding:
-                                const EdgeInsets.only(left: 16, right: 4, top: 4),
+                            padding: const EdgeInsets.only(
+                                left: 16, right: 4, top: 4),
                             child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: const BorderRadius.all(
@@ -546,7 +633,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                                 padding: const EdgeInsets.all(8.0),
                                 child: Center(
                                   child: Text(
-                                    lstActivity[index].activity!.capitalizeFirst! ?? '',
+                                    lstActivity[index]
+                                            .activity!
+                                            .capitalizeFirst! ??
+                                        '',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
@@ -722,9 +812,17 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                         children: [
                           GestureDetector(
                             onTap: zoomOut,
-                            child: const Icon(
-                              Icons.minimize,
-                              color: Colors.white,
+                            child: Container(
+                              width: 30,
+                              height: 40,
+                              child: IconButton(
+                                padding: EdgeInsets.only(bottom: 30, top: 0),
+                                onPressed: null,
+                                icon: const Icon(
+                                  Icons.minimize,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(
@@ -1025,7 +1123,6 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                                 backgroundColor: AppColors.PRIMARY_COLOR);
                             getFillingController.getData();
                             Navigator.of(context).pop();
-
                           } else {
                             EasyLoading.dismiss();
                             Fluttertoast.showToast(
@@ -1149,7 +1246,6 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       final model = GetAddedTagsResponseModel.fromJson(response?.data);
       EasyLoading.dismiss();
       if (model.status) {
-
         setState(() {
           lstActivity = model.activity ?? [];
         });
@@ -1171,7 +1267,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         await ApiBaseHelper.getInstance().get('get_activity');
     try {
       final model = GetDailyActivityModel.fromJson(response?.data);
-      print('::::::::get_activity::::::::::===>'+jsonEncode(model));
+      print('::::::::get_activity::::::::::===>' + jsonEncode(model));
       EasyLoading.dismiss();
       if (model.status ?? false) {
         setState(() {
@@ -1197,14 +1293,14 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       "activitys": _dailyActivityDataModel?.toJson(),
     };
 
-    print("lokesh check ==> "+param.toString());
+    print("lokesh check ==> " + param.toString());
 
     ApiResponse<dynamic>? response =
         await ApiBaseHelper.getInstance().post('add-activities', param);
     try {
       final model = GetDailyActivityModel.fromJson(response?.data);
-      print('::::::::add-activities::::::::::===>'+jsonEncode(model));
-      if(isDeleted){
+      print('::::::::add-activities::::::::::===>' + jsonEncode(model));
+      if (isDeleted) {
         buildIntervalList();
       }
       setState(() {

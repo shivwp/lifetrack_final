@@ -28,11 +28,11 @@ class ResizingItemModel {
   bool isCompleted = false;
   ResizingItemModel(
       {required this.heightOfItem,
-        required this.heightOfContainer,
-        required this.startDateTime,
-        required this.endDateTime,
-        this.bgColor,
-        required this.tagTitle});
+      required this.heightOfContainer,
+      required this.startDateTime,
+      required this.endDateTime,
+      this.bgColor,
+      required this.tagTitle});
 }
 
 class DraggableView extends StatefulWidget {
@@ -55,10 +55,11 @@ class DraggableView extends StatefulWidget {
       required int index}) callbackTagDeleted;
   DraggableView(
       {required this.lst,
-        required this.callback,
-        required this.listingFor,
-        required this.callbackTagDropped,
-        required this.callbackTagDeleted, required this.type});
+      required this.callback,
+      required this.listingFor,
+      required this.callbackTagDropped,
+      required this.callbackTagDeleted,
+      required this.type});
   @override
   _DraggableViewState createState() => _DraggableViewState();
 }
@@ -76,7 +77,7 @@ class _DraggableViewState extends State<DraggableView> {
         itemBuilder: (context, index) {
           return SizedBox(
             height: widget.lst[index].heightOfItem + widget.lst[index].top <
-                widget.lst[index].heightOfContainer
+                    widget.lst[index].heightOfContainer
                 ? widget.lst[index].heightOfContainer
                 : widget.lst[index].heightOfItem,
             child: Stack(
@@ -87,7 +88,8 @@ class _DraggableViewState extends State<DraggableView> {
                   height: widget.lst[index].heightOfItem,
                   width: widthBox,
                   child: DragTarget<AddedActivityModel>(
-                    builder: (BuildContext context, List<dynamic> accepted, List<dynamic> rejected) {
+                    builder: (BuildContext context, List<dynamic> accepted,
+                        List<dynamic> rejected) {
                       return GestureDetector(
                         onLongPress: () {
                           //showPopOver(index: index);
@@ -95,12 +97,12 @@ class _DraggableViewState extends State<DraggableView> {
                           if (widget.type == 'Budget') {
                             _showPopOver1(context: context, index: index);
                           } else {
-
                             // _showPopOver(context: context, index: index, tagId: widget.lst[index].tagModel!.id??0, color: widget.lst[index].bgColor);
 
                             showPopover(
                               context: context,
-                              transitionDuration: const Duration(milliseconds: 150),
+                              transitionDuration:
+                                  const Duration(milliseconds: 150),
                               bodyBuilder: (context) {
                                 return Column(
                                   children: [
@@ -108,11 +110,13 @@ class _DraggableViewState extends State<DraggableView> {
                                       color: Colors.black,
                                       icon: const Icon(Icons.delete_forever),
                                       onPressed: () {
-                                        if (widget.lst[index].tagModel != null) {
+                                        if (widget.lst[index].tagModel !=
+                                            null) {
                                           widget.callbackTagDeleted(
                                               index: index,
                                               listingFor: widget.listingFor,
-                                              tagDeleted: widget.lst[index].tagModel!);
+                                              tagDeleted:
+                                                  widget.lst[index].tagModel!);
                                         }
                                         Navigator.of(context).pop();
                                       },
@@ -121,21 +125,27 @@ class _DraggableViewState extends State<DraggableView> {
                                       color: Colors.black,
                                       icon: const Icon(Icons.edit),
                                       onPressed: () async {
-                                        await _showTimeFrameDialog(index: index);
+                                        await _showTimeFrameDialog(
+                                            index: index);
                                         Navigator.of(context).pop();
                                       },
                                     ),
                                     IconButton(
                                       color: Colors.black,
-                                      icon: const Icon(Icons.check_circle_outline),
+                                      icon: const Icon(
+                                          Icons.check_circle_outline),
                                       onPressed: () {
                                         EasyLoading.show();
-                                        updateTagStatus( widget.lst[index].tagModel?.id??0).then((value) {
+                                        updateTagStatus(widget
+                                                    .lst[index].tagModel?.id ??
+                                                0)
+                                            .then((value) {
                                           showToast(value.message);
                                           EasyLoading.dismiss();
-                                          if (value.status){
-                                            setState((){
-                                              widget.lst[index].isCompleted = true;
+                                          if (value.status) {
+                                            setState(() {
+                                              widget.lst[index].isCompleted =
+                                                  true;
                                             });
                                           }
                                           Navigator.of(context).pop();
@@ -172,21 +182,28 @@ class _DraggableViewState extends State<DraggableView> {
                           duration: const Duration(milliseconds: 500),
                           child: Stack(
                             children: [
-                              widget.lst[index].isCompleted?
-                              Align(
-                                  alignment: Alignment.topRight,
-                                  child: Icon(Icons.check_circle_outline_outlined, color: Colors.white,size: 16,))
-                                  :SizedBox.shrink(),
-
+                              widget.lst[index].isCompleted
+                                  ? Align(
+                                      alignment: Alignment.topRight,
+                                      child: Icon(
+                                        Icons.check_circle_outline_outlined,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ))
+                                  : SizedBox.shrink(),
                               Padding(
-                                padding: const EdgeInsets.all(8.0),
+                                padding: EdgeInsets.all(
+                                    widget.lst[index].tagModel == null
+                                        ? 0.0
+                                        : 2.0),
                                 child: Center(
                                   child: Text(
                                     widget.lst[index].tagModel == null
                                         ? //widget.lst[index].tagTitle.capitalizeFirst!+
-                                    'Not\nAssigned'
-                                        : (widget.lst[index].tagModel?.activity!.capitalizeFirst! ??
-                                        ''),
+                                        'Not\nAssigned'
+                                        : (widget.lst[index].tagModel?.activity!
+                                                .capitalizeFirst! ??
+                                            ''),
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       color: Colors.white,
@@ -287,19 +304,19 @@ class _DraggableViewState extends State<DraggableView> {
                   child: SizedBox(
                     width: 150,
                     child: Padding(
-                      padding:
-                      const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                      padding: const EdgeInsets.only(
+                          left: 16, right: 16, bottom: 16),
                       child: ElevatedButton(
                         style: ButtonStyle(
                           foregroundColor:
-                          MaterialStateProperty.all<Color>(Colors.white),
+                              MaterialStateProperty.all<Color>(Colors.white),
                           backgroundColor: MaterialStateColor.resolveWith(
-                                  (states) => AppColors.SUBMIT_BUTTON_BACKGROUND),
+                              (states) => AppColors.SUBMIT_BUTTON_BACKGROUND),
                           minimumSize: MaterialStateProperty.resolveWith(
-                                (states) => const Size.fromHeight(50),
+                            (states) => const Size.fromHeight(50),
                           ),
                           shape:
-                          MaterialStateProperty.all<RoundedRectangleBorder>(
+                              MaterialStateProperty.all<RoundedRectangleBorder>(
                             RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(25.0),
                             ),
@@ -330,19 +347,19 @@ class _DraggableViewState extends State<DraggableView> {
                   child: SizedBox(
                     width: 150,
                     child: Padding(
-                      padding:
-                      const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                      padding: const EdgeInsets.only(
+                          left: 16, right: 16, bottom: 16),
                       child: ElevatedButton(
                         style: ButtonStyle(
                           foregroundColor:
-                          MaterialStateProperty.all<Color>(Colors.white),
+                              MaterialStateProperty.all<Color>(Colors.white),
                           backgroundColor: MaterialStateColor.resolveWith(
-                                  (states) => AppColors.SUBMIT_BUTTON_BACKGROUND),
+                              (states) => AppColors.SUBMIT_BUTTON_BACKGROUND),
                           minimumSize: MaterialStateProperty.resolveWith(
-                                (states) => const Size.fromHeight(50),
+                            (states) => const Size.fromHeight(50),
                           ),
                           shape:
-                          MaterialStateProperty.all<RoundedRectangleBorder>(
+                              MaterialStateProperty.all<RoundedRectangleBorder>(
                             RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(25.0),
                             ),
@@ -443,15 +460,15 @@ class _DraggableViewState extends State<DraggableView> {
                 width: 150,
                 child: Padding(
                   padding:
-                  const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                      const EdgeInsets.only(left: 16, right: 16, bottom: 16),
                   child: ElevatedButton(
                     style: ButtonStyle(
                       foregroundColor:
-                      MaterialStateProperty.all<Color>(Colors.white),
+                          MaterialStateProperty.all<Color>(Colors.white),
                       backgroundColor: MaterialStateColor.resolveWith(
-                              (states) => AppColors.SUBMIT_BUTTON_BACKGROUND),
+                          (states) => AppColors.SUBMIT_BUTTON_BACKGROUND),
                       minimumSize: MaterialStateProperty.resolveWith(
-                            (states) => const Size.fromHeight(50),
+                        (states) => const Size.fromHeight(50),
                       ),
                       shape: MaterialStateProperty.all<RoundedRectangleBorder>(
                         RoundedRectangleBorder(
@@ -487,9 +504,9 @@ class _DraggableViewState extends State<DraggableView> {
   _calculateHeightBasedOnTimeSelection(
       {required int index, required TimeRangeResult? selectedTimeRange}) {
     DateTime start =
-    DateTime.now().applied(selectedTimeRange?.start ?? TimeOfDay.now());
+        DateTime.now().applied(selectedTimeRange?.start ?? TimeOfDay.now());
     DateTime end =
-    DateTime.now().applied(selectedTimeRange?.end ?? TimeOfDay.now());
+        DateTime.now().applied(selectedTimeRange?.end ?? TimeOfDay.now());
     widget.callback(
         index: index,
         lst: widget.lst,
@@ -498,7 +515,11 @@ class _DraggableViewState extends State<DraggableView> {
         listingFor: widget.listingFor);
   }
 
-  _showPopOver({required BuildContext context, required int index, tagId, Color? color}) {
+  _showPopOver(
+      {required BuildContext context,
+      required int index,
+      tagId,
+      Color? color}) {
     showPopover(
       context: context,
       transitionDuration: const Duration(milliseconds: 150),
@@ -533,7 +554,7 @@ class _DraggableViewState extends State<DraggableView> {
                 updateTagStatus(tagId).then((value) {
                   showToast(value.message);
                   EasyLoading.dismiss();
-                  if (value.status){
+                  if (value.status) {
                     color!.green;
                   }
                   Navigator.of(context).pop();
@@ -675,7 +696,7 @@ class _ManipulatingDragState extends State<ManipulatingDrag> {
         height: widget.height,
         decoration: const BoxDecoration(
             color: Colors.transparent //Colors.blue.withOpacity(0.5),
-        ),
+            ),
       ),
     );
   }
