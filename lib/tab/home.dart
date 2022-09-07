@@ -62,6 +62,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
   @override
   bool get wantKeepAlive => true;
 
+  /**
+   * This method is used to build array of models which is used in vertical budget list design.
+   *
+   */
   buildBudgetAndActualList() {
     setState(() {
       lstBudget = List.generate(lstDateTime.length, (index) {
@@ -69,7 +73,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
             heightOfItem: totalIntervalHeight,
             heightOfContainer: totalIntervalHeight,
             startDateTime: lstDateTime[index],
-            endDateTime: lstDateTime[index].add(Duration(minutes: interval)),
+            endDateTime: lstDateTime[index].add(Duration(
+                minutes: index == 0
+                    ? interval - 1
+                    : interval)), //First index should start time 00:01 and end time 01:00
             bgColor: Color((math.Random().nextDouble() * 0xFFFFFF).toInt())
                 .withOpacity(1.0),
             tagTitle: 'Activity');
@@ -323,16 +330,18 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         tagDropped: lst[index].tagModel!, listingFor: listingFor, index: index);
   }
 
+  /**
+   * This method is used to build vertical time interval between budget and actual list.
+   * Time interval like 23:00 - 00:00
+   */
   buildIntervalList() async {
     //print('interval is $interval');
     await Future.value(const Duration(seconds: 1));
     lstDateTime = [];
-    TimeOfDay currentTime = const TimeOfDay(hour: 00, minute: 00);
-    // DateFormat dateFormat = DateFormat.jm();
-    DateFormat dateFormat = DateFormat('mm:ss');
+    TimeOfDay currentTime = const TimeOfDay(hour: 00, minute: 01);
+    DateFormat dateFormat = DateFormat('hh:mm');
     DateTime parsedTime =
         dateFormat.parse(currentTime.format(context).toString());
-    // DateTime roundedTime = roundWithin30Minutes(parsedTime);
     String yourDate = DateTime.now().year.toString() +
         '-' +
         DateTime.now().month.toString() +
@@ -351,6 +360,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       }
       lstDateTime.add(nextRoundedTime);
     }
+    lstDateTime[0] = parsedTime; //Set starting time to 00:01 AM
     buildBudgetAndActualList();
     setState(() {
       Timer(const Duration(milliseconds: 50), () {
@@ -944,7 +954,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                           ),
                           if (index == lstDateTime.length - 1)
                             Text(
-                              hrMinDF.format(lstDateTime[0]),
+                              hrMinDF.format(lstDateTime[0].add(Duration(
+                                  minutes:
+                                      -1))), //At last show 23:00 to 00:00 not 00:01
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
