@@ -54,7 +54,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     totalIntervalHeight = intervalHeight + 20;
     _getAddedTags();
     _getAddedDailyActivities();
-    buildIntervalList();
+    buildIntervalList(true);
     super.initState();
     getFillingController.getData();
   }
@@ -63,8 +63,52 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
   bool get wantKeepAlive => true;
 
   /**
-   * This method is used to build array of models which is used in vertical budget list design.
-   *
+   * This method is used to build vertical time interval between budget and actual list.
+   * Time interval like 23:00 - 00:00
+   */
+  buildIntervalList(bool canScroll) async {
+    //print('interval is $interval');
+    await Future.value(const Duration(seconds: 1));
+    lstDateTime = [];
+    TimeOfDay currentTime = const TimeOfDay(hour: 00, minute: 01);
+    DateFormat dateFormat = DateFormat('hh:mm');
+    DateTime parsedTime =
+        dateFormat.parse(currentTime.format(context).toString());
+    String yourDate = DateTime.now().year.toString() +
+        '-' +
+        DateTime.now().month.toString() +
+        '-' +
+        DateTime.now().day.toString() +
+        '- 00:00:00.000';
+    DateTime roundedTime = roundWithin30Minutes(parsedTime);
+    int indexToScroll = 0;
+    lstDateTime.add(roundedTime);
+    int totalElement = 24 ~/ (interval / 60);
+    for (var i = 1; i < totalElement; i++) {
+      DateTime nextRoundedTime =
+          lstDateTime[i - 1].add(Duration(minutes: interval));
+      if (lstDateTime[i - 1].hour == TimeOfDay.now().hour) {
+        indexToScroll = i - 1;
+      }
+      lstDateTime.add(nextRoundedTime);
+    }
+    lstDateTime[0] = parsedTime; //Set starting time to 00:01 AM
+    buildBudgetAndActualList();
+    if (canScroll) {
+      setState(() {
+        Timer(const Duration(milliseconds: 50), () {
+          _intervalScrollController.animateTo(
+              indexToScroll * totalIntervalHeight,
+              duration: const Duration(seconds: 1),
+              curve: Curves.easeInOutCubic);
+        });
+      });
+    }
+  }
+
+  /**
+   * This method is used to build array of models which is used in vertical budget/Actual list design.
+   * Every model is used to decide height, start date, end date, background color and title in budget/Actual section.
    */
   buildBudgetAndActualList() {
     setState(() {
@@ -89,7 +133,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
               heightOfItem: totalIntervalHeight,
               heightOfContainer: totalIntervalHeight,
               startDateTime: lstDateTime[index],
-              endDateTime: lstDateTime[index].add(Duration(minutes: interval)),
+              endDateTime: lstDateTime[index]
+                  .add(Duration(minutes: index == 0 ? interval - 1 : interval)),
               bgColor: Color((math.Random().nextDouble() * 0xFFFFFF).toInt())
                   .withOpacity(1.0),
               tagTitle: 'Activity'));
@@ -97,6 +142,11 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     });
   }
 
+  /**
+   * In this method we traverse each model of budget array then check with added budgets whether
+   * 1. Added budget activity comes between each model's start/end date.
+   * 2. If it comes between this interval then we assign added tag to this model's property.
+   */
   _filterFromBudgetedAddedActivities() {
     lstBudget.asMap().forEach((index, model) {
       if (_dailyActivityDataModel?.bugeted != null) {
@@ -112,8 +162,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                   .isBefore(model.endDateTime);
           bool isEndingBetween = (budgeted.endDateTime ?? DateTime.now())
                   .isAfter(model.startDateTime) &&
-              (budgeted.endDateTime ?? DateTime.now())
-                  .isBefore(model.endDateTime);
+              ((budgeted.endDateTime ?? DateTime.now())
+                      .isBefore(model.endDateTime) ||
+                  (budgeted.endDateTime ?? DateTime.now())
+                      .isAtSameMomentAs(model.endDateTime));
           if (isStartingBetween || isEndingBetween) {
             return true;
           }
@@ -122,13 +174,36 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         if (lstFiltered.isNotEmpty) {
           log('Budgeted start= ${lstFiltered[0].startDateTime!.hour}:${lstFiltered[0].startDateTime!.minute} Budgeted end= ${lstFiltered[0].endDateTime!.hour}:${lstFiltered[0].endDateTime!.minute} same or after ${model.startDateTime.hour}:${model.startDateTime.minute}');
           DateTime start = lstFiltered[0].startDateTime ?? DateTime.now();
-          DateTime end = lstFiltered[0].endDateTime ?? DateTime.now();
-          if (start.isBefore(model.startDateTime)) {
-            //Budgeted is started in previous slot
-            if (end.isBefore(model.endDateTime)) {
-              //Budgeted started in previous slot and end is in this slot so we have to start this slot when previous slot closes.
-              start = end;
+          DateTime end = lstFiltered.last.endDateTime ?? DateTime.now();
+          if (this.interval < 60) {
+            if (lstFiltered.last.endDateTime!
+                    .difference(model.endDateTime)
+                    .inMinutes >=
+                this.interval) {
               end = model.endDateTime;
+            }
+            //Below is special case when filtered object end date is 00:00 and model end date is 23:30 0r 23:45
+            //In this case diff is in minus(-)
+            if (lstFiltered.last.endDateTime!
+                    .difference(model.endDateTime)
+                    .inMinutes <
+                0) {
+              end = model.endDateTime;
+            }
+            if (lstFiltered.last.endDateTime!
+                    .difference(model.startDateTime)
+                    .inMinutes >=
+                this.interval) {
+              start = model.startDateTime;
+            }
+          } else {
+            if (start.isBefore(model.startDateTime)) {
+              //Budgeted is started in previous slot
+              if (end.isBefore(model.endDateTime)) {
+                //Budgeted started in previous slot and end is in this slot so we have to start this slot when previous slot closes.
+                start = end;
+                end = model.endDateTime;
+              }
             }
           }
           double height = _getCalculatedHeight(start, end);
@@ -160,8 +235,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                   .isBefore(model.endDateTime);
           bool isEndingBetween = (actual.endDateTime ?? DateTime.now())
                   .isAfter(model.startDateTime) &&
-              (actual.endDateTime ?? DateTime.now())
-                  .isBefore(model.endDateTime);
+              ((actual.endDateTime ?? DateTime.now())
+                      .isBefore(model.endDateTime) ||
+                  (actual.endDateTime ?? DateTime.now())
+                      .isAtSameMomentAs(model.endDateTime));
           if (isStartingBetween || isEndingBetween) {
             return true;
           }
@@ -170,13 +247,28 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         if (lstFiltered.isNotEmpty) {
           log('Actual start= ${lstFiltered[0].startDateTime!.hour}:${lstFiltered[0].startDateTime!.minute} Actual end= ${lstFiltered[0].endDateTime!.hour}:${lstFiltered[0].endDateTime!.minute} same or after ${model.startDateTime.hour}:${model.startDateTime.minute}');
           DateTime start = lstFiltered[0].startDateTime ?? DateTime.now();
-          DateTime end = lstFiltered[0].endDateTime ?? DateTime.now();
-          if (start.isBefore(model.startDateTime)) {
-            //Budgeted is started in previous slot
-            if (end.isBefore(model.endDateTime)) {
-              //Budgeted started in previous slot and end is in this slot so we have to start this slot when previous slot closes.
-              start = end;
+          DateTime end = lstFiltered.last.endDateTime ?? DateTime.now();
+          if (this.interval < 60) {
+            if (lstFiltered.last.endDateTime!
+                    .difference(model.endDateTime)
+                    .inMinutes >=
+                this.interval) {
               end = model.endDateTime;
+            }
+            if (lstFiltered.last.endDateTime!
+                    .difference(model.startDateTime)
+                    .inMinutes >=
+                this.interval) {
+              start = model.startDateTime;
+            }
+          } else {
+            if (start.isBefore(model.startDateTime)) {
+              //Budgeted is started in previous slot
+              if (end.isBefore(model.endDateTime)) {
+                //Budgeted started in previous slot and end is in this slot so we have to start this slot when previous slot closes.
+                start = end;
+                end = model.endDateTime;
+              }
             }
           }
           double height = _getCalculatedHeight(start, end);
@@ -330,57 +422,17 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         tagDropped: lst[index].tagModel!, listingFor: listingFor, index: index);
   }
 
-  /**
-   * This method is used to build vertical time interval between budget and actual list.
-   * Time interval like 23:00 - 00:00
-   */
-  buildIntervalList() async {
-    //print('interval is $interval');
-    await Future.value(const Duration(seconds: 1));
-    lstDateTime = [];
-    TimeOfDay currentTime = const TimeOfDay(hour: 00, minute: 01);
-    DateFormat dateFormat = DateFormat('hh:mm');
-    DateTime parsedTime =
-        dateFormat.parse(currentTime.format(context).toString());
-    String yourDate = DateTime.now().year.toString() +
-        '-' +
-        DateTime.now().month.toString() +
-        '-' +
-        DateTime.now().day.toString() +
-        '- 00:00:00.000';
-    DateTime roundedTime = roundWithin30Minutes(parsedTime);
-    int indexToScroll = 0;
-    lstDateTime.add(roundedTime);
-    int totalElement = 24 ~/ (interval / 60);
-    for (var i = 1; i < totalElement; i++) {
-      DateTime nextRoundedTime =
-          lstDateTime[i - 1].add(Duration(minutes: interval));
-      if (lstDateTime[i - 1].hour == TimeOfDay.now().hour) {
-        indexToScroll = i - 1;
-      }
-      lstDateTime.add(nextRoundedTime);
-    }
-    lstDateTime[0] = parsedTime; //Set starting time to 00:01 AM
-    buildBudgetAndActualList();
-    setState(() {
-      Timer(const Duration(milliseconds: 50), () {
-        _intervalScrollController.animateTo(indexToScroll * totalIntervalHeight,
-            duration: const Duration(seconds: 1), curve: Curves.easeInOutCubic);
-      });
-    });
-  }
-
   void zoomIn() {
     if (interval < 120) {
       interval = interval * 2;
-      buildIntervalList();
+      buildIntervalList(false);
     }
   }
 
   void zoomOut() {
     if (interval > 15) {
       interval = interval ~/ 2;
-      buildIntervalList();
+      buildIntervalList(false);
     }
   }
 
@@ -841,7 +893,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                           InkWell(
                             onTap: () {
                               interval = 60;
-                              buildIntervalList();
+                              buildIntervalList(false);
                             },
                             child: Container(
                               width: 30,
@@ -1313,7 +1365,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       final model = GetDailyActivityModel.fromJson(response?.data);
       print('::::::::add-activities::::::::::===>' + jsonEncode(model));
       if (isDeleted) {
-        buildIntervalList();
+        buildIntervalList(true);
       }
       setState(() {
         _dailyActivityDataModel = model.data;
