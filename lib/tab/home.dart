@@ -112,6 +112,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
    */
   buildBudgetAndActualList() {
     setState(() {
+      /*
       lstBudget = List.generate(lstDateTime.length, (index) {
         ResizingItemModel model = ResizingItemModel(
             heightOfItem: totalIntervalHeight,
@@ -127,6 +128,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         return model;
       });
       _filterFromBudgetedAddedActivities();
+      */
+      lstBudget =
+          _buildListUsingAddedActivityList(_dailyActivityDataModel?.bugeted);
+      /*
       lstActual = List.generate(
           lstDateTime.length,
           (index) => ResizingItemModel(
@@ -139,9 +144,152 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                   .withOpacity(1.0),
               tagTitle: 'Activity'));
       _filterFromActualAddedActivities();
+      */
+      lstActual = _buildListUsingAddedActualActivityList(
+          _dailyActivityDataModel?.actual);
     });
   }
 
+  /**
+   * In this method we traverse each model of budget array then check with added budgets whether
+   */
+  List<ResizingItemModel> _buildListUsingAddedActivityList(
+      List<Bugeted>? bugeted) {
+    List<ResizingItemModel> lst = [];
+    int totalMinutes = 0;
+    DateTime startDateTime = lstDateTime[0];
+    DateTime endDateTime = lstDateTime[0].add(Duration(minutes: interval - 1));
+    while (totalMinutes < (24 * 60) - 1) {
+      ResizingItemModel model = ResizingItemModel(
+          heightOfItem: totalIntervalHeight,
+          heightOfContainer: totalIntervalHeight,
+          startDateTime: startDateTime,
+          endDateTime: endDateTime,
+          bgColor: Color((math.Random().nextDouble() * 0xFFFFFF).toInt())
+              .withOpacity(1.0),
+          tagTitle: 'Activity');
+      if (bugeted != null) {
+        bool isActivityFoundInInterval = false;
+        for (var i = 0; i < bugeted.length; i++) {
+          Bugeted budgeted = bugeted[i];
+          if (model.startDateTime
+              .isAtSameMomentAs(budgeted.startDateTime ?? DateTime.now())) {
+            isActivityFoundInInterval = true;
+            // Added activity starts at same time as current model's start time.
+            // In this case just match current model's end time equal to added activity's end time.
+            // Assign tag model from added activity.
+            model.tagModel = AddedActivityModel.fromTag(
+                budgeted.tag, budgeted.tagId, budgeted.id);
+            model.endDateTime = budgeted.endDateTime ?? DateTime.now();
+            startDateTime = model.endDateTime;
+            endDateTime = model.endDateTime.add(Duration(minutes: interval));
+            break;
+          }
+          bool isStartingBetween = (budgeted.startDateTime ?? DateTime.now())
+                  .isAfter(model.startDateTime) &&
+              (budgeted.startDateTime ?? DateTime.now())
+                  .isBefore(model.endDateTime);
+          if (isStartingBetween) {
+            isActivityFoundInInterval = true;
+            // In this case first complete blank time interval before activity time starts.
+            model.endDateTime = budgeted.startDateTime ?? DateTime.now();
+            startDateTime = model.endDateTime;
+            endDateTime = model.endDateTime.add(Duration(minutes: interval));
+            break;
+          }
+        }
+        if (!isActivityFoundInInterval) {
+          //
+          startDateTime = model.endDateTime;
+          endDateTime = model.endDateTime.add(Duration(minutes: interval));
+        }
+      }
+      _calculateHeightAndAddToList(lst, model);
+      int diff = (model.endDateTime.difference(model.startDateTime).inMinutes);
+      if (diff < 0) {
+        //diff negative when start night 23:00:00 and end 00:00:00
+        diff = interval;
+      }
+      totalMinutes = totalMinutes + diff;
+    }
+    return lst;
+  }
+
+  _calculateHeightAndAddToList(
+      List<ResizingItemModel> lst, ResizingItemModel model) {
+    double height =
+        _getCalculatedHeight(model.startDateTime, model.endDateTime);
+    model.heightOfContainer = height;
+    model.heightOfItem = height;
+    lst.add(model);
+  }
+
+  /**
+   * In this method we traverse each model of budget array then check with added budgets whether
+   */
+  List<ResizingItemModel> _buildListUsingAddedActualActivityList(
+      List<Actual>? lstActual) {
+    List<ResizingItemModel> lst = [];
+    int totalMinutes = 0;
+    DateTime startDateTime = lstDateTime[0];
+    DateTime endDateTime = lstDateTime[0].add(Duration(minutes: interval - 1));
+    while (totalMinutes < (24 * 60) - 1) {
+      ResizingItemModel model = ResizingItemModel(
+          heightOfItem: totalIntervalHeight,
+          heightOfContainer: totalIntervalHeight,
+          startDateTime: startDateTime,
+          endDateTime: endDateTime,
+          bgColor: Color((math.Random().nextDouble() * 0xFFFFFF).toInt())
+              .withOpacity(1.0),
+          tagTitle: 'Activity');
+      if (lstActual != null) {
+        bool isActivityFoundInInterval = false;
+        for (var i = 0; i < lstActual.length; i++) {
+          Actual actual = lstActual[i];
+          if (model.startDateTime
+              .isAtSameMomentAs(actual.startDateTime ?? DateTime.now())) {
+            isActivityFoundInInterval = true;
+            // Added activity starts at same time as current model's start time.
+            // In this case just match current model's end time equal to added activity's end time.
+            // Assign tag model from added activity.
+            model.tagModel =
+                AddedActivityModel.fromTag(actual.tag, actual.tagId, actual.id);
+            model.endDateTime = actual.endDateTime ?? DateTime.now();
+            startDateTime = model.endDateTime;
+            endDateTime = model.endDateTime.add(Duration(minutes: interval));
+            break;
+          }
+          bool isStartingBetween = (actual.startDateTime ?? DateTime.now())
+                  .isAfter(model.startDateTime) &&
+              (actual.startDateTime ?? DateTime.now())
+                  .isBefore(model.endDateTime);
+          if (isStartingBetween) {
+            isActivityFoundInInterval = true;
+            // In this case first complete blank time interval before activity time starts.
+            model.endDateTime = actual.startDateTime ?? DateTime.now();
+            startDateTime = model.endDateTime;
+            endDateTime = model.endDateTime.add(Duration(minutes: interval));
+            break;
+          }
+        }
+        if (!isActivityFoundInInterval) {
+          //
+          startDateTime = model.endDateTime;
+          endDateTime = model.endDateTime.add(Duration(minutes: interval));
+        }
+      }
+      _calculateHeightAndAddToList(lst, model);
+      int diff = (model.endDateTime.difference(model.startDateTime).inMinutes);
+      if (diff < 0) {
+        //diff negative when start night 23:00:00 and end 00:00:00
+        diff = interval;
+      }
+      totalMinutes = totalMinutes + diff;
+    }
+    return lst;
+  }
+
+/*
   /**
    * In this method we traverse each model of budget array then check with added budgets whether
    * 1. Added budget activity comes between each model's start/end date.
@@ -284,7 +432,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       }
     });
   }
-
+*/
   double _getCalculatedHeight(DateTime start, DateTime end) {
     int diff = end.difference(start).inMinutes;
     if (diff < 0) {
@@ -1336,8 +1484,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       if (model.status ?? false) {
         setState(() {
           _dailyActivityDataModel = model.data;
-          _filterFromBudgetedAddedActivities();
-          _filterFromActualAddedActivities();
+          buildBudgetAndActualList();
+          //_filterFromBudgetedAddedActivities();
+          //_filterFromActualAddedActivities();
         });
       } else {
         Fluttertoast.showToast(
@@ -1369,8 +1518,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       }
       setState(() {
         _dailyActivityDataModel = model.data;
-        _filterFromBudgetedAddedActivities();
-        _filterFromActualAddedActivities();
+        buildBudgetAndActualList();
+        //_filterFromBudgetedAddedActivities();
+        //_filterFromActualAddedActivities();
       });
       EasyLoading.dismiss();
       if (model.status ?? false) {

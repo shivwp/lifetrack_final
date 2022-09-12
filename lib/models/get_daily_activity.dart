@@ -47,9 +47,17 @@ class DailyActivityDataModel {
     bugeted = List.from(json?['bugeted'] ?? [])
         .map((e) => Bugeted.fromJson(e))
         .toList();
+    bugeted?.sort((first, second) {
+      return (first.startDateTime ?? DateTime.now())
+          .compareTo(second.startDateTime ?? DateTime.now());
+    });
     actual = List.from(json?['actual'] ?? [])
         .map((e) => Actual.fromJson(e))
         .toList();
+    actual?.sort((first, second) {
+      return (first.startDateTime ?? DateTime.now())
+          .compareTo(second.startDateTime ?? DateTime.now());
+    });
   }
   DailyActivityDataModel.fromTag(AddedActivityModel addedActivityModel) {
     bugeted = [Bugeted.fromTag(addedActivityModel)];
