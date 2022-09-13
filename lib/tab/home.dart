@@ -489,10 +489,18 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         if (lstFiltered.length > 0) {
           lstFiltered[0].budgetedStartTime = tagDropped.starttime;
           lstFiltered[0].budgetEndTime = tagDropped.endtime;
+          lstFiltered[0].actualStartTime = tagDropped.starttime;
+          lstFiltered[0].actualEndTime = tagDropped.endtime;
         } else {
           _dailyActivityDataModel!.bugeted?.add(Bugeted.fromTag(tagDropped));
         }
         if (lstFilteredActual.length > 0) {
+          //if update time frame in budget then update in actual too..
+          // If actual time frame updated then don't update in budget.
+          lstFilteredActual[0].budgetedStartTime = tagDropped.starttime;
+          lstFilteredActual[0].budgetEndTime = tagDropped.endtime;
+          lstFilteredActual[0].actualStartTime = tagDropped.starttime;
+          lstFilteredActual[0].actualEndTime = tagDropped.endtime;
         } else {
           _dailyActivityDataModel!.actual?.add(Actual.fromTag(tagDropped));
         }
@@ -1533,7 +1541,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       final model = GetDailyActivityModel.fromJson(response?.data);
       print('::::::::add-activities::::::::::===>' + jsonEncode(model));
       if (isDeleted) {
-        buildIntervalList(true);
+        buildIntervalList(false);
       }
       setState(() {
         _dailyActivityDataModel = model.data;
