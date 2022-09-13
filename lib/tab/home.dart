@@ -159,7 +159,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     int totalMinutes = 0;
     DateTime startDateTime = lstDateTime[0];
     DateTime endDateTime = lstDateTime[0].add(Duration(minutes: interval - 1));
-    while (totalMinutes < (24 * 60) - 1) {
+    while (totalMinutes <= ((24 * 60) - interval) - 1) {
       ResizingItemModel model = ResizingItemModel(
           heightOfItem: totalIntervalHeight,
           heightOfContainer: totalIntervalHeight,
@@ -173,8 +173,12 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         for (var i = 0; i < bugeted.length; i++) {
           Bugeted budgeted = bugeted[i];
           if (model.startDateTime
-              .isAtSameMomentAs(budgeted.startDateTime ?? DateTime.now())) {
+                  .isAtSameMomentAs(budgeted.startDateTime ?? DateTime.now()) ||
+              model.startDateTime
+                  .add(Duration(minutes: -1))
+                  .isAtSameMomentAs(budgeted.startDateTime ?? DateTime.now())) {
             isActivityFoundInInterval = true;
+            // Subtracting 1 minutes in model because sometimes it starts with 00:01 and api's budget starts from 00:00
             // Added activity starts at same time as current model's start time.
             // In this case just match current model's end time equal to added activity's end time.
             // Assign tag model from added activity.
@@ -205,6 +209,12 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         }
       }
       _calculateHeightAndAddToList(lst, model);
+      if (model.endDateTime.isAtSameMomentAs(DateTime(model.endDateTime.year,
+          model.endDateTime.month, model.endDateTime.day - 1, 24, 0))) {
+        //if Model end date is 00:00 then we need to update it's day to next day
+        model.endDateTime = DateTime(model.endDateTime.year,
+            model.endDateTime.month, model.endDateTime.day, 24, 0);
+      }
       int diff = (model.endDateTime.difference(model.startDateTime).inMinutes);
       if (diff < 0) {
         //diff negative when start night 23:00:00 and end 00:00:00
@@ -233,7 +243,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     int totalMinutes = 0;
     DateTime startDateTime = lstDateTime[0];
     DateTime endDateTime = lstDateTime[0].add(Duration(minutes: interval - 1));
-    while (totalMinutes < (24 * 60) - 1) {
+    while (totalMinutes <= ((24 * 60) - interval) - 1) {
       ResizingItemModel model = ResizingItemModel(
           heightOfItem: totalIntervalHeight,
           heightOfContainer: totalIntervalHeight,
@@ -247,7 +257,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         for (var i = 0; i < lstActual.length; i++) {
           Actual actual = lstActual[i];
           if (model.startDateTime
-              .isAtSameMomentAs(actual.startDateTime ?? DateTime.now())) {
+                  .isAtSameMomentAs(actual.startDateTime ?? DateTime.now()) ||
+              model.startDateTime
+                  .add(Duration(minutes: -1))
+                  .isAtSameMomentAs(actual.startDateTime ?? DateTime.now())) {
             isActivityFoundInInterval = true;
             // Added activity starts at same time as current model's start time.
             // In this case just match current model's end time equal to added activity's end time.
@@ -279,6 +292,12 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         }
       }
       _calculateHeightAndAddToList(lst, model);
+      if (model.endDateTime.isAtSameMomentAs(DateTime(model.endDateTime.year,
+          model.endDateTime.month, model.endDateTime.day - 1, 24, 0))) {
+        //if Model end date is 00:00 then we need to update it's day to next day
+        model.endDateTime = DateTime(model.endDateTime.year,
+            model.endDateTime.month, model.endDateTime.day, 24, 0);
+      }
       int diff = (model.endDateTime.difference(model.startDateTime).inMinutes);
       if (diff < 0) {
         //diff negative when start night 23:00:00 and end 00:00:00
