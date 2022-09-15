@@ -476,17 +476,25 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       } else {
         List<Bugeted> lstFiltered =
             _dailyActivityDataModel!.bugeted!.where((model) {
-          return ((model.tagId == tagDropped.id) &&
-                  (model.id == tagDropped.activityId)) ==
-              true;
+          bool isTagAlreadyAdded = ((model.tagId == tagDropped.id) &&
+              (model.id == tagDropped.activityId));
+          bool isTimeAlreadyTaken =
+              (model.budgetedStartTime ?? "") == (tagDropped.starttime ?? "") &&
+                  (model.budgetEndTime ?? "") == (tagDropped.endtime ?? "");
+          return isTagAlreadyAdded || isTimeAlreadyTaken;
         }).toList();
         List<Actual> lstFilteredActual =
             _dailyActivityDataModel!.actual!.where((model) {
-          return ((model.tagId == tagDropped.id) &&
-                  (model.id == tagDropped.activityId)) ==
-              true;
+          bool isTagAlreadyAdded = ((model.tagId == tagDropped.id) &&
+              (model.id == tagDropped.activityId));
+          bool isTimeAlreadyTaken =
+              (model.budgetedStartTime ?? "") == (tagDropped.starttime ?? "") &&
+                  (model.budgetEndTime ?? "") == (tagDropped.endtime ?? "");
+          return isTagAlreadyAdded || isTimeAlreadyTaken;
         }).toList();
         if (lstFiltered.length > 0) {
+          lstFiltered[0].tag = Tag.fromTag(tagDropped);
+          lstFiltered[0].tagId = tagDropped.id;
           lstFiltered[0].budgetedStartTime = tagDropped.starttime;
           lstFiltered[0].budgetEndTime = tagDropped.endtime;
           lstFiltered[0].actualStartTime = tagDropped.starttime;
@@ -497,6 +505,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         if (lstFilteredActual.length > 0) {
           //if update time frame in budget then update in actual too..
           // If actual time frame updated then don't update in budget.
+          lstFilteredActual[0].tag = Tag.fromTag(tagDropped);
+          lstFilteredActual[0].tagId = tagDropped.id;
           lstFilteredActual[0].budgetedStartTime = tagDropped.starttime;
           lstFilteredActual[0].budgetEndTime = tagDropped.endtime;
           lstFilteredActual[0].actualStartTime = tagDropped.starttime;
@@ -796,6 +806,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                                                         showToast(
                                                             value.message);
                                                         EasyLoading.dismiss();
+                                                        // Call API to
+                                                        // Refresh below budgeted and actual list so that added tag's title can be updated
+                                                        _getAddedDailyActivities();
                                                         if (value.status) {
                                                           setState(() {
                                                             lstActivity[index]

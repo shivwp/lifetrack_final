@@ -86,14 +86,14 @@ class Bugeted {
   });
   int? id;
   late final int? userId;
-  late final int? tagId;
+  int? tagId;
   late final String? date;
   String? budgetedStartTime;
   String? budgetEndTime;
   String? actualStartTime;
   String? actualEndTime;
   late final int? status;
-  late final Tag? tag;
+  Tag? tag;
   late DateTime? startDateTime;
   late DateTime? endDateTime;
 
@@ -140,6 +140,8 @@ class Bugeted {
     //_data['user_id'] = userId;
     _data['tag_id'] = tagId;
     _data['date'] = date;
+    String formattedDate = DateFormat('hh:mm')
+        .format(startDateTime ?? DateTime.now()); //2022-05-25
     _data['budgeted_start_time'] = budgetedStartTime;
     _data['budget_end_time'] = budgetEndTime;
     _data['actual_start_time'] = actualStartTime;
@@ -160,13 +162,13 @@ class Tag {
     required this.selectcolor,
     required this.selectprivacy,
   });
-  late final String? activity;
-  late final int? parentCatgory;
-  late final int? subCategory;
-  late final String? starttime;
-  late final String? endtime;
-  late final String? selectcolor;
-  late final String? selectprivacy;
+  String? activity;
+  int? parentCatgory;
+  int? subCategory;
+  String? starttime;
+  String? endtime;
+  String? selectcolor;
+  String? selectprivacy;
 
   Tag.fromJson(Map<String, dynamic>? json) {
     activity = json?['activity'];
@@ -177,7 +179,15 @@ class Tag {
     selectcolor = json?['selectcolor'];
     selectprivacy = json?['selectprivacy'];
   }
-
+  Tag.fromTag(AddedActivityModel addedActivityModel) {
+    activity = addedActivityModel.activity;
+    parentCatgory = addedActivityModel.parentCatgory;
+    subCategory = addedActivityModel.subCategory;
+    selectcolor = addedActivityModel.selectcolor;
+    selectprivacy = addedActivityModel.selectprivacy;
+    starttime = addedActivityModel.starttime;
+    endtime = addedActivityModel.endtime;
+  }
   Map<String, dynamic> toJson() {
     final _data = <String, dynamic>{};
     _data['activity'] = activity;
@@ -215,14 +225,14 @@ class Actual {
   });
   int? id;
   late final int? userId;
-  late final int? tagId;
+  int? tagId;
   late final String? date;
   String? budgetedStartTime;
   String? budgetEndTime;
   String? actualStartTime;
   String? actualEndTime;
   late final int? status;
-  late final Tag? tag;
+  Tag? tag;
   late DateTime? startDateTime;
   late DateTime? endDateTime;
 
