@@ -94,8 +94,8 @@ class Bugeted {
   String? actualEndTime;
   late final int? status;
   Tag? tag;
-  late DateTime? startDateTime;
-  late DateTime? endDateTime;
+  DateTime? startDateTime;
+  DateTime? endDateTime;
 
   Bugeted.fromJson(Map<String, dynamic>? json) {
     id = json?['id'];
@@ -140,8 +140,24 @@ class Bugeted {
     //_data['user_id'] = userId;
     _data['tag_id'] = tagId;
     _data['date'] = date;
-    String formattedDate = DateFormat('hh:mm')
-        .format(startDateTime ?? DateTime.now()); //2022-05-25
+    if (endDateTime != null) {
+      DateFormat df = DateFormat('HH:mm');
+      if (endDateTime!.isAtSameMomentAs(DateTime(endDateTime!.year,
+          endDateTime!.month, endDateTime!.day - 1, 24, 0))) {
+        //if Model end date is 00:00 then we need to update it's day to next day
+        endDateTime = DateTime(
+            endDateTime!.year, endDateTime!.month, endDateTime!.day, 23, 59);
+      }
+      budgetEndTime = df.format(endDateTime ?? DateTime.now());
+      actualEndTime = df.format(endDateTime ?? DateTime.now());
+    } else {
+      if ((budgetEndTime ?? "") == "00:00") {
+        budgetEndTime = '23:59';
+      }
+      if ((actualEndTime ?? "") == "00:00") {
+        actualEndTime = '23:59';
+      }
+    }
     _data['budgeted_start_time'] = budgetedStartTime;
     _data['budget_end_time'] = budgetEndTime;
     _data['actual_start_time'] = actualStartTime;
@@ -233,8 +249,8 @@ class Actual {
   String? actualEndTime;
   late final int? status;
   Tag? tag;
-  late DateTime? startDateTime;
-  late DateTime? endDateTime;
+  DateTime? startDateTime;
+  DateTime? endDateTime;
 
   Actual.fromJson(Map<String, dynamic>? json) {
     id = json?['id'];
@@ -280,6 +296,24 @@ class Actual {
     //_data['user_id'] = userId;
     _data['tag_id'] = tagId;
     _data['date'] = date;
+    if (endDateTime != null) {
+      DateFormat df = DateFormat('HH:mm');
+      if (endDateTime!.isAtSameMomentAs(DateTime(endDateTime!.year,
+          endDateTime!.month, endDateTime!.day - 1, 24, 0))) {
+        //if Model end date is 00:00 then we need to update it's day to next day
+        endDateTime = DateTime(
+            endDateTime!.year, endDateTime!.month, endDateTime!.day, 23, 59);
+      }
+      budgetEndTime = df.format(endDateTime ?? DateTime.now());
+      actualEndTime = df.format(endDateTime ?? DateTime.now());
+    } else {
+      if ((budgetEndTime ?? "") == "00:00") {
+        budgetEndTime = '23:59';
+      }
+      if ((actualEndTime ?? "") == "00:00") {
+        actualEndTime = '23:59';
+      }
+    }
     _data['budgeted_start_time'] = budgetedStartTime;
     _data['budget_end_time'] = budgetEndTime;
     _data['actual_start_time'] = actualStartTime;
