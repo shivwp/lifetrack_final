@@ -112,6 +112,7 @@ class Bugeted {
     endDateTime = hrMinDF.parse(budgetEndTime!);
   }
   Bugeted.fromTag(AddedActivityModel addedActivityModel) {
+    id = 0;
     tagId = addedActivityModel.id;
     DateTime now = DateTime.now();
     String formattedDate = DateFormat('yyyy-MM-dd').format(now); //2022-05-25
@@ -197,12 +198,16 @@ class Tag {
   }
   Tag.fromTag(AddedActivityModel addedActivityModel) {
     activity = addedActivityModel.activity;
-    parentCatgory = addedActivityModel.parentCatgory;
-    subCategory = addedActivityModel.subCategory;
+    //parentCatgory = addedActivityModel.parentCatgory;
+    //subCategory = addedActivityModel.subCategory;
     selectcolor = addedActivityModel.selectcolor;
-    selectprivacy = addedActivityModel.selectprivacy;
-    starttime = addedActivityModel.starttime;
-    endtime = addedActivityModel.endtime;
+    //selectprivacy = addedActivityModel.selectprivacy;
+    if (addedActivityModel.starttime != null) {
+      starttime = addedActivityModel.starttime;
+    }
+    if (addedActivityModel.endtime != null) {
+      endtime = addedActivityModel.endtime;
+    }
   }
   Map<String, dynamic> toJson() {
     final _data = <String, dynamic>{};
@@ -304,7 +309,7 @@ class Actual {
         endDateTime = DateTime(
             endDateTime!.year, endDateTime!.month, endDateTime!.day, 23, 59);
       }
-      budgetEndTime = df.format(endDateTime ?? DateTime.now());
+      //budgetEndTime = df.format(endDateTime ?? DateTime.now());
       actualEndTime = df.format(endDateTime ?? DateTime.now());
     } else {
       if ((budgetEndTime ?? "") == "00:00") {

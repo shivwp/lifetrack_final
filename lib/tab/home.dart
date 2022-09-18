@@ -467,24 +467,15 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       {required AddedActivityModel tagDropped,
       required ListingFor listingFor,
       required int index}) {
+    //Replace tagged start/end time with proposed block start/end time
+    tagDropped.starttime = hrMinDF.format(lstBudget[index].startDateTime);
+    tagDropped.endtime = hrMinDF.format(lstBudget[index].endDateTime);
     if (listingFor == ListingFor.budget) {
-      //Replace tagged start/end time with proposed block start/end time
-      tagDropped.starttime = hrMinDF.format(lstBudget[index].startDateTime);
-      tagDropped.endtime = hrMinDF.format(lstBudget[index].endDateTime);
       if (_dailyActivityDataModel == null) {
         _dailyActivityDataModel = DailyActivityDataModel.fromTag(tagDropped);
       } else {
         List<Bugeted> lstFiltered =
             _dailyActivityDataModel!.bugeted!.where((model) {
-          bool isTagAlreadyAdded = ((model.tagId == tagDropped.id) &&
-              (model.id == tagDropped.activityId));
-          bool isTimeAlreadyTaken =
-              (model.budgetedStartTime ?? "") == (tagDropped.starttime ?? "") &&
-                  (model.budgetEndTime ?? "") == (tagDropped.endtime ?? "");
-          return isTagAlreadyAdded || isTimeAlreadyTaken;
-        }).toList();
-        List<Actual> lstFilteredActual =
-            _dailyActivityDataModel!.actual!.where((model) {
           bool isTagAlreadyAdded = ((model.tagId == tagDropped.id) &&
               (model.id == tagDropped.activityId));
           bool isTimeAlreadyTaken =
@@ -499,25 +490,50 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
           lstFiltered[0].budgetEndTime = tagDropped.endtime;
           lstFiltered[0].actualStartTime = tagDropped.starttime;
           lstFiltered[0].actualEndTime = tagDropped.endtime;
+          lstFiltered[0].startDateTime = lstBudget[index].startDateTime;
+          lstFiltered[0].endDateTime = lstBudget[index].endDateTime;
         } else {
           _dailyActivityDataModel!.bugeted?.add(Bugeted.fromTag(tagDropped));
         }
-        if (lstFilteredActual.length > 0) {
-          //if update time frame in budget then update in actual too..
-          // If actual time frame updated then don't update in budget.
-          lstFilteredActual[0].tag = Tag.fromTag(tagDropped);
-          lstFilteredActual[0].tagId = tagDropped.id;
-          lstFilteredActual[0].budgetedStartTime = tagDropped.starttime;
-          lstFilteredActual[0].budgetEndTime = tagDropped.endtime;
-          lstFilteredActual[0].actualStartTime = tagDropped.starttime;
-          lstFilteredActual[0].actualEndTime = tagDropped.endtime;
-        } else {
-          _dailyActivityDataModel!.actual?.add(Actual.fromTag(tagDropped));
-        }
+        // If tag dropped in budget then update in actual too
+        _actualTagDropped(tagDropped: tagDropped, index: index);
       }
+    } else if (listingFor == ListingFor.actual) {
+      _actualTagDropped(tagDropped: tagDropped, index: index);
     }
     //save to server
     _callAddDailyActivityApi(false);
+  }
+
+  _actualTagDropped(
+      {required AddedActivityModel tagDropped, required int index}) {
+    List<Actual> lstFilteredActual =
+        _dailyActivityDataModel!.actual!.where((model) {
+      bool isTagAlreadyAdded = ((model.tagId == tagDropped.id) &&
+          (model.id == tagDropped.activityId));
+      bool isTimeAlreadyTaken =
+          (model.budgetedStartTime ?? "") == (tagDropped.starttime ?? "") &&
+              (model.budgetEndTime ?? "") == (tagDropped.endtime ?? "");
+      if (isTimeAlreadyTaken && (tagDropped.activityId ?? 0) != model.id) {
+        // If tag replaced then id need to change to -1 as per Tapan suggested
+        model.id = -1;
+      }
+      return isTagAlreadyAdded || isTimeAlreadyTaken;
+    }).toList();
+    if (lstFilteredActual.length > 0) {
+      //if update time frame in budget then update in actual too..
+      // If actual time frame updated then don't update in budget.
+      lstFilteredActual[0].tag = Tag.fromTag(tagDropped);
+      lstFilteredActual[0].tagId = tagDropped.id;
+      lstFilteredActual[0].budgetedStartTime = tagDropped.starttime;
+      lstFilteredActual[0].budgetEndTime = tagDropped.endtime;
+      lstFilteredActual[0].actualStartTime = tagDropped.starttime;
+      lstFilteredActual[0].actualEndTime = tagDropped.endtime;
+      lstFilteredActual[0].startDateTime = lstActual[index].startDateTime;
+      lstFilteredActual[0].endDateTime = lstActual[index].endDateTime;
+    } else {
+      _dailyActivityDataModel!.actual?.add(Actual.fromTag(tagDropped));
+    }
   }
 
   _callbackTagDeleted(
@@ -596,9 +612,50 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         }
         print('Next widget start time ${end.hour}:${end.minute}');
         lst[index + 1].startDateTime = end;
+        if (lst[index + 1].tagModel != null) {
+          // Means in next slot there is activity added.
+          // We need to decrease next added activity's time slot via setting next activity's start time equal to
+          // Current activity's end time
+          if (listingFor == ListingFor.actual) {
+            int endHour = end.hour;
+            int endMinutes = end.minute;
+            int endTotalMinutes = endHour * 60 + endMinutes;
+            Actual? actualToDelete = null;
+            _dailyActivityDataModel?.actual?.forEach((actual) {
+              int actualStartTotalMinutes =
+                  (actual.startDateTime ?? DateTime.now()).hour * 60 +
+                      (actual.startDateTime ?? DateTime.now()).minute;
+
+              int actualEndTotalMinutes =
+                  (actual.endDateTime ?? DateTime.now()).hour * 60 +
+                      (actual.endDateTime ?? DateTime.now()).minute;
+
+              bool isStartingBetween =
+                  actualStartTotalMinutes < endTotalMinutes &&
+                      endTotalMinutes < actualEndTotalMinutes;
+              if (isStartingBetween) {
+                // In this case we shift next block's start to current's end.
+                DateFormat df = DateFormat('HH:mm');
+                actual.startDateTime = end;
+                actual.actualStartTime =
+                    df.format(actual.startDateTime ?? DateTime.now());
+              }
+              if (actualEndTotalMinutes == endTotalMinutes) {
+                // In this case
+                actualToDelete = actual;
+              }
+            });
+            if (actualToDelete != null) {
+              _dailyActivityDataModel?.actual?.remove(actualToDelete);
+            }
+          }
+        }
       }
     }
     setState(() {
+      DateFormat df = DateFormat('HH:mm');
+      lst[index].tagModel?.starttime = df.format(start);
+      lst[index].tagModel?.endtime = df.format(end);
       lst[index].startDateTime = start;
       lst[index].endDateTime = end;
       lst[index].heightOfItem = diff * ratio;
@@ -1545,14 +1602,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     Map<String, dynamic> param = {
       "activitys": _dailyActivityDataModel?.toJson(),
     };
-
-    print("lokesh check ==> " + param.toString());
-
     ApiResponse<dynamic>? response =
         await ApiBaseHelper.getInstance().post('add-activities', param);
     try {
       final model = GetDailyActivityModel.fromJson(response?.data);
-      print('::::::::add-activities::::::::::===>' + jsonEncode(model));
       if (isDeleted) {
         buildIntervalList(false);
       }

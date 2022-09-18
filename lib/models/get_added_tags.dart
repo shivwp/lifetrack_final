@@ -47,7 +47,7 @@ class AddedActivityModel {
   int? activityId = 0;
   late final String? userid;
   String? activity;
-  late final int? parentCatgory;
+  int? parentCatgory;
   late final int? subCategory;
   String? starttime;
   String? endtime;
