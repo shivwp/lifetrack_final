@@ -112,7 +112,7 @@ class Bugeted {
     endDateTime = hrMinDF.parse(budgetEndTime!);
   }
   Bugeted.fromTag(AddedActivityModel addedActivityModel) {
-    id = 0;
+    id = null;
     tagId = addedActivityModel.id;
     DateTime now = DateTime.now();
     String formattedDate = DateFormat('yyyy-MM-dd').format(now); //2022-05-25

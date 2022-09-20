@@ -467,13 +467,58 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       {required AddedActivityModel tagDropped,
       required ListingFor listingFor,
       required int index}) {
+    /*
+    1. Fresh budget add kre
+    2. Budget me tag replace kre
+    3. Actual me tag replace kre
+    4. Budget me time update kre
+    5. Actual me time update kre
+
+    1. Fresh budget add kre
+      ->Both side records with blank id fields or without id field(null)
+    2. Budget me tag replace kre
+      ->Both side records with blank id or without id field(null) fields(Bca actual tag will be updated in this case)
+    3. Actual me tag replace kre
+      -> Exiting object ka budget time 00:00 in actual. Actual 00:00 in budget. for same time slot. id = -1  or without id field(null) in actual.
+    4. Budget me time update kre
+      -> both time update in budget and actual
+    5. Actual me time update kre
+      -> Only update time in actual object
+    * */
     //Replace tagged start/end time with proposed block start/end time
     tagDropped.starttime = hrMinDF.format(lstBudget[index].startDateTime);
     tagDropped.endtime = hrMinDF.format(lstBudget[index].endDateTime);
-    if (listingFor == ListingFor.budget) {
-      if (_dailyActivityDataModel == null) {
-        _dailyActivityDataModel = DailyActivityDataModel.fromTag(tagDropped);
-      } else {
+    if (_dailyActivityDataModel == null) {
+      _dailyActivityDataModel = DailyActivityDataModel.fromTag(tagDropped);
+    } else {
+      if (listingFor == ListingFor.budget) {
+        bool isFound = false;
+        _dailyActivityDataModel!.bugeted!.forEach((model) {
+          bool isTagAlreadyAdded = ((model.tagId == tagDropped.id) &&
+              (model.id == tagDropped.activityId));
+          bool isTimeAlreadyTaken =
+              (model.budgetedStartTime ?? "") == (tagDropped.starttime ?? "") &&
+                  (model.budgetEndTime ?? "") == (tagDropped.endtime ?? "");
+          if (isTimeAlreadyTaken && (tagDropped.activityId ?? 0) != model.id) {
+            // If tag replaced then id need to change to -1 or null as per Tapan suggested
+            model.id = null;
+          }
+          if (isTagAlreadyAdded || isTimeAlreadyTaken) {
+            isFound = true;
+            model.tag = Tag.fromTag(tagDropped);
+            model.tagId = tagDropped.id;
+            model.budgetedStartTime = tagDropped.starttime;
+            model.budgetEndTime = tagDropped.endtime;
+            model.actualStartTime = tagDropped.starttime;
+            model.actualEndTime = tagDropped.endtime;
+            model.startDateTime = lstBudget[index].startDateTime;
+            model.endDateTime = lstBudget[index].endDateTime;
+          }
+        });
+        if (!isFound) {
+          _dailyActivityDataModel!.bugeted?.add(Bugeted.fromTag(tagDropped));
+        }
+        /*
         List<Bugeted> lstFiltered =
             _dailyActivityDataModel!.bugeted!.where((model) {
           bool isTagAlreadyAdded = ((model.tagId == tagDropped.id) &&
@@ -495,18 +540,56 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         } else {
           _dailyActivityDataModel!.bugeted?.add(Bugeted.fromTag(tagDropped));
         }
+        */
         // If tag dropped in budget then update in actual too
-        _actualTagDropped(tagDropped: tagDropped, index: index);
+        _actualTagDropped(
+            tagDropped: tagDropped, index: index, inBudgetDropped: true);
+      } else if (listingFor == ListingFor.actual) {
+        _actualTagDropped(
+            tagDropped: tagDropped, index: index, inBudgetDropped: false);
       }
-    } else if (listingFor == ListingFor.actual) {
-      _actualTagDropped(tagDropped: tagDropped, index: index);
     }
     //save to server
     _callAddDailyActivityApi(false);
   }
 
   _actualTagDropped(
-      {required AddedActivityModel tagDropped, required int index}) {
+      {required AddedActivityModel tagDropped,
+      required int index,
+      required bool inBudgetDropped}) {
+    bool isFound = false;
+    _dailyActivityDataModel!.actual!.forEach((model) {
+      bool isTagAlreadyAdded = ((model.tagId == tagDropped.id) &&
+          (model.id == tagDropped.activityId));
+      bool isTimeAlreadyTaken =
+          (model.budgetedStartTime ?? "") == (tagDropped.starttime ?? "") &&
+              (model.budgetEndTime ?? "") == (tagDropped.endtime ?? "");
+      if (isTagAlreadyAdded || isTimeAlreadyTaken) {
+        isFound = true;
+        //if update time frame in budget then update in actual too..
+        // If actual time frame updated then don't update in budget.
+        model.tag = Tag.fromTag(tagDropped);
+        model.tagId = tagDropped.id;
+        model.budgetedStartTime = tagDropped.starttime;
+        model.budgetEndTime = tagDropped.endtime;
+        model.actualStartTime = tagDropped.starttime;
+        model.actualEndTime = tagDropped.endtime;
+        model.startDateTime = lstActual[index].startDateTime;
+        model.endDateTime = lstActual[index].endDateTime;
+      }
+      if (isTimeAlreadyTaken && (tagDropped.activityId ?? 0) != model.id) {
+        // If tag replaced then id need to change to -1 as per Tapan suggested
+        model.id = inBudgetDropped ? null : -1;
+        if (!inBudgetDropped) {
+          model.budgetedStartTime = '00:00';
+          model.budgetEndTime = '00:00';
+        }
+      }
+    });
+    if (!isFound) {
+      _dailyActivityDataModel!.actual?.add(Actual.fromTag(tagDropped));
+    }
+    /*
     List<Actual> lstFilteredActual =
         _dailyActivityDataModel!.actual!.where((model) {
       bool isTagAlreadyAdded = ((model.tagId == tagDropped.id) &&
@@ -534,6 +617,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     } else {
       _dailyActivityDataModel!.actual?.add(Actual.fromTag(tagDropped));
     }
+    */
   }
 
   _callbackTagDeleted(
